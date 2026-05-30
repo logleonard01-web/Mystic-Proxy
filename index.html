@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mystic Hub</title>
+<link rel="icon" href="/assets/mystic-logo.webp" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html,body { margin:0; height:100%; background:#0d0608; color:#f5e9eb; font-family: ui-sans-serif, system-ui, sans-serif; }
+  header { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; border-bottom:1px solid #2a1418; background:linear-gradient(180deg,#160a0d,#0d0608); }
+  header img { width:32px; height:32px; border-radius:999px; }
+  header strong { letter-spacing:.02em; }
+  form { display:flex; flex:1; gap:.5rem; }
+  input[type=text]{ flex:1; padding:.6rem .9rem; border-radius:.6rem; border:1px solid #3a1a20; background:#1a0c10; color:#f5e9eb; font-size:.95rem; outline:none; }
+  input[type=text]:focus{ border-color:#d6486a; box-shadow:0 0 0 3px rgba(214,72,106,.25); }
+  button{ padding:.6rem 1rem; border-radius:.6rem; border:0; background:linear-gradient(135deg,#d6486a,#8a2a44); color:#fff; font-weight:600; cursor:pointer; }
+  button:hover{ filter:brightness(1.1); }
+  main{ height:calc(100% - 64px); }
+  iframe{ width:100%; height:100%; border:0; background:#0d0608; }
+  .hint{ font-size:.75rem; color:#9a7a82; padding:.4rem 1rem; }
+</style>
+</head>
+<body>
+<header>
+  <img src="/assets/mystic-logo.webp" alt="" />
+  <strong>Mystic Hub</strong>
+  <form id="f">
+    <input id="u" type="text" placeholder="Enter URL or search…" autocomplete="off" />
+    <button type="submit">Go</button>
+  </form>
+</header>
+<div class="hint">Wisp: wss://orbitweb.org/campus/</div>
+<main><iframe id="frame" src="about:blank"></iframe></main>
+
+<script type="module">
+import { BareMuxConnection } from '/bare-mux/index.js';
+const conn = new BareMuxConnection('/bare-mux/worker.js');
+await conn.setTransport('/epoxy/index.js', [{ wisp: 'wss://orbitweb.org/campus/' }]);
+
+if ('serviceWorker' in navigator) {
+  await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  await navigator.serviceWorker.ready;
+}
+
+// Load UV config in main thread to access prefix/encodeUrl
+const s = document.createElement('script');
+s.src = '/uv/uv.bundle.js';
+document.head.appendChild(s);
+await new Promise(r => s.onload = r);
+const c = document.createElement('script');
+c.src = '/uv/uv.config.js';
+document.head.appendChild(c);
+await new Promise(r => c.onload = r);
+
+function search(q){
+  try { return new URL(q).toString(); } catch {}
+  try { return new URL('https://' + q).toString(); } catch {}
+  return 'https://duckduckgo.com/?q=' + encodeURIComponent(q);
+}
+
+document.getElementById('f').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const url = search(document.getElementById('u').value.trim());
+  const encoded = __uv$config.prefix + __uv$config.encodeUrl(url);
+  document.getElementById('frame').src = encoded;
+});
+</script>
+</body>
+</html>
